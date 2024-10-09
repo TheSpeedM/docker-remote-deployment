@@ -63,7 +63,7 @@ try {
 try {
     # Step 5: Test if local IP is reachable on port
     Write-DebugMessage "Testing if local IP is reachable on port $TargetPort..."
-    Invoke-WebRequest -Uri "http://localhost:$TargetPort/v2/" -UseBasicParsing -ErrorAction Stop
+    Invoke-WebRequest -Uri "http://localhost:$TargetPort/v2/" -UseBasicParsing -ErrorAction Stop | Out-Null
     Write-DebugMessage "Local IP is reachable on port $TargetPort."
 
     # Step 6: Push tagged images to local registry
@@ -79,7 +79,7 @@ try {
     foreach ($image in $taggedImages) {
         try {
             $repositoryName = ($image -split '/')[1] -split ':' | Select-Object -First 1
-            Invoke-WebRequest -Uri "http://localhost:$TargetPort/v2/$repositoryName/tags/list" -UseBasicParsing -ErrorAction Stop
+            Invoke-WebRequest -Uri "http://localhost:$TargetPort/v2/$repositoryName/tags/list" -UseBasicParsing -ErrorAction Stop | Out-Null
             Write-DebugMessage "Image $image found in repository."
         } catch {
             Write-Host "Image $image not found in repository"
