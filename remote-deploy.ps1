@@ -90,8 +90,13 @@ try {
     # Step 8: Deploy using docker compose on target
     Write-DebugMessage "Deploying using docker compose on target..."
     docker --host "ssh://$TargetUser@$TargetHost" compose --file "./remote-compose.yaml" up -d
+
+    # Step 9: Prune unused Docker resources on target
+    Write-DebugMessage "Pruning unused Docker resources on target..."
+    docker --host "ssh://$TargetUser@$TargetHost" system prune -a -f
+    Write-DebugMessage "Docker system prune completed on target."
 } finally {
-    # Step 9: Cleanup SSH tunnel
+    # Step 10: Cleanup SSH tunnel
     Write-DebugMessage "Cleaning up SSH tunnel..."
     if ($sshProcess -and !$sshProcess.HasExited) {
         Stop-Process -Id $sshProcess.Id -Force
