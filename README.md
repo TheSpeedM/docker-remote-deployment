@@ -2,10 +2,13 @@
 
 This script automates the deployment of Docker images to a remote target. It builds the Docker images locally, tags them, creates an SSH tunnel to the target, pushes the images, and then deploys them using Docker Compose on the target.
 
+The goal of this script is to ease the deployment of docker containers on a remote server that doesn't have access to the internet (can't pull images from the Docker Hub).
+
 ## Requirements
 
 - PowerShell
 - Docker and Docker Compose installed locally
+- Docker and Docker Compose installed on the target server
 - SSH access to the target server
 
 ## Setup
@@ -31,6 +34,28 @@ This command mounts the directory `/path/to/large/drive` to `/var/lib/registry` 
 ### Setting up SSH keys for seamless access
 
 [Please follow this guide about exchanging SSH keys for passwordless SSH entry.](https://www.digitalocean.com/community/tutorials/how-to-configure-ssh-key-based-authentication-on-a-linux-server)
+
+### Add a remote-compose file
+
+The `remote-deploy`-utility requires there to be a file in the directory (next to the compose) called `remote-compose.yaml`. This file is used for remote deployment.
+
+`remote-compose.yaml` should be written as if it is executed on the remote server (because it is). The images that it needs to `docker compose up` should be the same as in the regular compose file, just prefixed by `localhost:5000/`. 
+
+So this:
+
+```yaml
+services:
+  hello-world:
+    image: hello-world
+```
+
+Becomes this:
+
+```yaml
+services:
+  hello-world:
+    image: localhost:5000/hello-world
+```
 
 ## Usage
 
