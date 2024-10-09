@@ -28,6 +28,10 @@ docker run -d -p 5000:5000 --restart=always --name <INSERT NAME> -v /path/to/lar
 
 This command mounts the directory `/path/to/large/drive` to `/var/lib/registry` inside the container, ensuring that the images are stored on the larger drive.
 
+### Setting up SSH keys for seamless access
+
+[Please follow this guide about exchanging SSH keys for passwordless SSH entry.](https://www.digitalocean.com/community/tutorials/how-to-configure-ssh-key-based-authentication-on-a-linux-server)
+
 ## Usage
 
 ```powershell
