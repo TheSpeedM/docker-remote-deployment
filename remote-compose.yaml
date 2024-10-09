@@ -1,0 +1,5 @@
+version: '3'
+services:
+  hello-world:
+    image: localhost:5000/hello-world
+    container_name: rd-test
