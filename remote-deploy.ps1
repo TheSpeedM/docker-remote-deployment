@@ -3,15 +3,17 @@ param(
     [string]$TargetUser = "root",
     [int]$TargetPort = 5000,
     [switch]$Debug = $false,
-    [switch]$Help = $false
+    [switch]$Help = $false,
+    [switch]$DryRun = $false
 )
 
 if ($Help -or -not $TargetHost) {
-    Write-Host "Usage: remote-deploy -TargetHost <TargetHost> [-TargetUser <TargetUser>] [-TargetPort <TargetPort>] [-Debug] [-Help]"
+    Write-Host "Usage: remote-deploy -TargetHost <TargetHost> [-TargetUser <TargetUser>] [-TargetPort <TargetPort>] [-Debug] [-DryRun] [-Help]"
     Write-Host "- TargetHost: The target host for deployment (required)."
     Write-Host "- TargetUser: The target user for SSH connection (default: root)."
     Write-Host "- TargetPort: The port for the SSH tunnel and registry (default: 5000)."
     Write-Host "- Debug: Enable debug messages."
+    Write-Host "- DryRun: Perform a dry run without making actual changes."
     Write-Host "- Help: Display this help message."
     exit 0
 }
@@ -89,12 +91,15 @@ try {
 
     # Step 8: Deploy using docker compose on target
     Write-DebugMessage "Deploying using docker compose on target..."
-    docker --host "ssh://$TargetUser@$TargetHost" compose --file "./remote-compose.yaml" up -d
+    $dryRunFlag = if ($DryRun) { "--dry-run" } else { "" }
+    docker --host "ssh://$TargetUser@$TargetHost" compose --file "./remote-compose.yaml" up -d $dryRunFlag
 
-    # Step 9: Prune unused Docker resources on target
-    Write-DebugMessage "Pruning unused Docker resources on target..."
-    docker --host "ssh://$TargetUser@$TargetHost" system prune -a -f
-    Write-DebugMessage "Docker system prune completed on target."
+    # Step 9: Prune unused Docker resources on target (skip if dry run)
+    if (-not $DryRun) {
+        Write-DebugMessage "Pruning unused Docker resources on target..."
+        docker --host "ssh://$TargetUser@$TargetHost" system prune -a -f
+        Write-DebugMessage "Docker system prune completed on target."
+    }
 } finally {
     # Step 10: Cleanup SSH tunnel
     Write-DebugMessage "Cleaning up SSH tunnel..."
