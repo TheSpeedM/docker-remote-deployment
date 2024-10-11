@@ -56,7 +56,7 @@ For Docker Desktop on Windows, go to the **Settings** >> **Docker Engine**, and 
 
 ### Add a remote-compose file
 
-The `remote-deploy`-utility requires there to be a file in the directory (next to the compose) called `remote-compose.yaml`. This file is used for remote deployment.
+The `Invoke-RemoteDeploy`-utility requires there to be a file in the directory (next to the compose) called `remote-compose.yaml`. This file is used for remote deployment.
 
 `remote-compose.yaml` should be written as if it is executed on the remote server (because it is). The images that it needs to `docker compose up` should be the same as in the regular compose file, just prefixed by `localhost:5000/`. 
 
@@ -82,7 +82,7 @@ services:
 ## Usage
 
 ```powershell
-remote-deploy -TargetHost <TargetHost> [-TargetUser <TargetUser>] [-TargetPort <TargetPort>] [-Debug] [-Help]
+Invoke-RemoteDeploy -TargetHost <TargetHost> [-TargetUser <TargetUser>] [-TargetPort <TargetPort>] [-Debug] [-Help]
 ```
 
 ### Parameters
@@ -96,11 +96,11 @@ remote-deploy -TargetHost <TargetHost> [-TargetUser <TargetUser>] [-TargetPort <
 ### Example
 
 ```powershell
-remote-deploy 192.168.1.100
+Invoke-RemoteDeploy 192.168.1.100
 ```
 
 ```powershell
-remote-deploy -TargetHost 192.168.1.100 -TargetUser root -TargetPort 5000 -Debug
+Invoke-RemoteDeploy -TargetHost 192.168.1.100 -TargetUser root -TargetPort 5000 -Debug
 ```
 
 ## Installing Globally
@@ -113,16 +113,16 @@ To make this script available system-wide, you can create a symbolic link to it 
 2. Create a symbolic link to the script in a directory that is in your system's PATH.
 
 ```powershell
-New-Item -ItemType SymbolicLink -Path "C:\Windows\System32\remote-deploy.ps1" -Target ".\remote-deploy.ps1"
+New-Item -ItemType SymbolicLink -Path "C:\Windows\System32\Invoke-RemoteDeploy.ps1" -Target ".\Invoke-RemoteDeploy.ps1"
 ```
 
-After these steps, you can run `remote-deploy` from any directory in PowerShell.
+After these steps, you can run `Invoke-RemoteDeploy` from any directory in PowerShell.
 
 ### Uninstall
 To uninstall the script globally, simply remove the symbolic link:
 
 ```powershell
-Remove-Item -Path "C:\Windows\System32\remote-deploy.ps1" -Force
+Remove-Item -Path "C:\Windows\System32\Invoke-RemoteDeploy.ps1" -Force
 ```
 
 ## Notes
