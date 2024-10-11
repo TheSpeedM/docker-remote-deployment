@@ -31,6 +31,25 @@ docker run -d -p 5000:5000 --restart=always --name <INSERT NAME> -v /path/to/lar
 
 This command mounts the directory `/path/to/large/drive` to `/var/lib/registry` inside the container, ensuring that the images are stored on the larger drive.
 
+### Adding insecure registry
+
+Assuming your machine has an ip address in the range `192.168.x.x`.
+
+#### Linux
+Edit `/etc/docker/daemon.json` to include:
+```json
+{
+    "insecure-registries": ["192.168.0.0/16"]
+}
+```
+#### Windows
+For Docker Desktop on Windows, go to the **Settings** >> **Docker Engine**, and modify the `daemon.json` configuration to include:
+```json
+{
+    "insecure-registries": ["192.168.0.0/16"]
+}
+```
+
 ### Setting up SSH keys for seamless access
 
 [Please follow this guide about exchanging SSH keys for passwordless SSH entry.](https://www.digitalocean.com/community/tutorials/how-to-configure-ssh-key-based-authentication-on-a-linux-server)
@@ -105,11 +124,13 @@ Remove-Item -Path "C:\Windows\System32\remote-deploy.ps1" -Force
 
 ## Notes
 
-- Ensure that Docker is running before executing the script.
-- You must have SSH access to the target server.
+- Ensure that Docker (Desktop) is running before executing the script.
+- In it's current state the script assumes you share a subnet with the server you're trying to SSH into, so it (probably) won't work for named URLs (e.g. server01.local).
+- You must have SSH access to the target server, on a level you can run Docker commands (probably root).
 - The script tags and pushes Docker images based on the configuration in the `docker-compose.yaml` file.
 
 ## Troubleshooting
 
 - If the script fails to connect to the target host, verify the SSH connection and ensure the target host is reachable.
+- Make sure the insecure-registries are correctly set.
 - Use the `-Debug` parameter to see more detailed messages about the script's progress and any issues.
