@@ -47,9 +47,12 @@ try {
 Write-DebugMessage "Tagging images specified in compose file with local IP and port $TargetPort..."
 $composeFile = "docker-compose.yaml"
 $images = (docker compose -f $composeFile config | Select-String -Pattern "image:" | ForEach-Object { ($_ -split "image:")[1].Trim() }) | Where-Object { $_ -ne "" }
+$taggedImages = @()
 foreach ($image in $images) {
-    Write-DebugMessage "Tagging image: $image"
-    docker tag $image "$LOCAL_IP`:$TargetPort/$image"
+    $taggedImage = "$LOCAL_IP`:$TargetPort/$image"
+    Write-DebugMessage "Tagging image: $image as $taggedImage"
+    docker tag $image $taggedImage
+    $taggedImages += $taggedImage
 }
 
 # Step 4: Establish SSH tunnel to target
@@ -70,7 +73,6 @@ try {
 
     # Step 6: Push tagged images to local registry
     Write-DebugMessage "Pushing tagged images to local registry..."
-    $taggedImages = docker images --format "{{.Repository}}:{{.Tag}}" | Where-Object { $_ -like "$LOCAL_IP`:$TargetPort*" }
     foreach ($image in $taggedImages) {
         Write-DebugMessage "Pushing image: $image"
         docker push $image
@@ -106,6 +108,13 @@ try {
     if ($sshProcess -and !$sshProcess.HasExited) {
         Stop-Process -Id $sshProcess.Id -Force
         Write-DebugMessage "SSH tunnel closed successfully."
+    }
+
+    # Untag/remove the images it tagged in this script
+    Write-DebugMessage "Removing tagged images..."
+    foreach ($image in $taggedImages) {
+        Write-DebugMessage "Removing image: $image"
+        docker rmi $image -f
     }
 }
 
