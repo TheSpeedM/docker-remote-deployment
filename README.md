@@ -76,6 +76,9 @@ services:
     image: localhost:5000/hello-world
 ```
 
+> [!NOTE]
+> A service with a build stage should still have an image name specified (in  `docker-compose.yaml`) like above, otherwise the script can not find the final image. This image name should then be prefixed with `localhost:5000/` in `remote-compose.yaml`.
+
 ## Usage
 
 ```powershell
