@@ -45,8 +45,7 @@ try {
 
 # Step 3: Tag images specified in compose file with local IP and port
 Write-DebugMessage "Tagging images specified in compose file with local IP and port $TargetPort..."
-$composeFile = "docker-compose.yaml"
-$images = (docker compose -f $composeFile config | Select-String -Pattern "image:" | ForEach-Object { ($_ -split "image:")[1].Trim() }) | Where-Object { $_ -ne "" }
+$images = (docker compose config | Select-String -Pattern "image:" | ForEach-Object { ($_ -split "image:")[1].Trim() }) | Where-Object { $_ -ne "" }
 $taggedImages = @()
 foreach ($image in $images) {
     $taggedImage = "$LOCAL_IP`:$TargetPort/$image"
