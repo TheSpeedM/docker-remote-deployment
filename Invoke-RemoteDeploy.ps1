@@ -2,16 +2,20 @@ param(
     [string]$TargetHost,
     [string]$TargetUser = "root",
     [int]$TargetPort = 5000,
+    [string]$RemotePath = "/etc/docker-remote-deploy",
+    [string[]]$FilesToCopy = @(),
     [switch]$Debug = $false,
     [switch]$Help = $false,
     [switch]$DryRun = $false
 )
 
 if ($Help -or -not $TargetHost) {
-    Write-Host "Usage: remote-deploy -TargetHost <TargetHost> [-TargetUser <TargetUser>] [-TargetPort <TargetPort>] [-Debug] [-DryRun] [-Help]"
+    Write-Host "Usage: remote-deploy -TargetHost <TargetHost> [-RemotePath <RemotePath>] [-TargetUser <TargetUser>] [-TargetPort <TargetPort>] [-FilesToCopy <FilesToCopy>] [-Debug] [-DryRun] [-Help]"
     Write-Host "- TargetHost: The target host for deployment (required)."
+    Write-Host "- RemotePath: The path on the remote machine to copy files from (default: /etc/docker-remote-deploy)."
     Write-Host "- TargetUser: The target user for SSH connection (default: root)."
     Write-Host "- TargetPort: The port for the SSH tunnel and registry (default: 5000)."
+    Write-Host "- FilesToCopy: List of local files to copy to the .docker-remote-deploy folder (default: none)."
     Write-Host "- Debug: Enable debug messages."
     Write-Host "- DryRun: Perform a dry run without making actual changes."
     Write-Host "- Help: Display this help message."
@@ -28,11 +32,7 @@ function Write-DebugMessage {
 function New-DockerImages {
     Write-DebugMessage "Building Docker images..."
     try {
-        $buildOutput = docker compose build 2>&1
-        if ($buildOutput -match "The system cannot find the file specified." -or
-            $buildOutput -match "error during connect") {
-            throw "Docker is not running or improperly configured."
-        }
+        docker compose build
         Write-DebugMessage "Docker images built successfully."
     } catch {
         Write-Host "Error: Failed to build Docker images. Ensure Docker is running and properly configured."
@@ -122,10 +122,71 @@ function Test-ImagesInRepository {
     }
 }
 
+function Copy-FilesFromRemote {
+    Write-DebugMessage "Copying files from remote to local..."
+    try {
+        # Using SCP to copy files from remote to local
+        $remotePath = "$TargetUser@$TargetHost`:$RemotePath/."
+        $localPath = ".\.docker-remote-deploy"
+
+        # Create local directory if it doesn't exist
+        if (-not (Test-Path -Path $localPath)) {
+            New-Item -ItemType Directory -Path $localPath -Force | Out-Null
+        }
+
+        # Execute SCP command
+        $scpCommand = "scp -r $remotePath $localPath"
+        Write-DebugMessage "Executing: $scpCommand"
+        Invoke-Expression $scpCommand
+
+        # Copy specified local files to the .docker-remote-deploy folder
+        foreach ($file in $FilesToCopy) {
+            if (Test-Path -Path $file) {
+                Copy-Item -Path $file -Destination $localPath -Force
+                Write-DebugMessage "Copied file: $file to $localPath"
+            } else {
+                Write-Host "Warning: File $file not found. Skipping."
+            }
+        }
+
+        # Always copy remote-compose.yaml from the current directory to the .docker-remote-deploy folder
+        if (Test-Path -Path "./remote-compose.yaml") {
+            Copy-Item -Path "./remote-compose.yaml" -Destination "$localPath/docker-compose.yaml" -Force
+            Write-DebugMessage "Copied remote-compose.yaml to $localPath and renamed to docker-compose.yaml"
+        } else {
+            Write-Host "Warning: remote-compose.yaml not found in the current directory."
+        }
+
+        Set-Location -Path $localPath
+        Write-DebugMessage "Changed directory to $localPath"
+    } catch {
+        Write-Host "Error: $_"
+        exit 1
+    }
+}
+
+function Remove-LocalDirectory {
+    if (Test-Path -Path ".\.docker-remote-deploy") {
+        Write-DebugMessage "Removing local directory .docker-remote-deploy..."
+        try {
+            # Remove the directory and its contents
+            Remove-Item -Path ".\.docker-remote-deploy" -Recurse -Force
+            Write-DebugMessage "Removed .docker-remote-deploy and all its contents."
+        } catch {
+            Write-Host "Error: $_"
+            exit 1
+        }
+    }
+}
+
 function Start-DockerComposeDeploy {
-    Write-DebugMessage "Deploying using docker compose on target..."
+    param($Path)
+    $stackName = (Split-Path -Leaf ($Path).Path) -replace '[^a-zA-Z0-9_-]', ''  # Get the stack name from the parent directory
+
+    Write-DebugMessage "Deploying $stackName using docker compose on target..."
+
     $dryRunFlag = if ($DryRun) { "--dry-run" } else { "" }
-    docker --host "ssh://$TargetUser@$TargetHost" compose --file "./remote-compose.yaml" up -d $dryRunFlag
+    docker --host "ssh://$TargetUser@$TargetHost" compose -p "$stackName" up -d $dryRunFlag
 }
 
 function Clear-DockerResources {
@@ -155,6 +216,7 @@ function Remove-TaggedImages {
 }
 
 # Main script execution
+$originalLocation = Get-Location
 New-DockerImages
 $LOCAL_IP = Get-LocalIPAddress
 $taggedImages = Add-DockerImageTags -LOCAL_IP $LOCAL_IP
@@ -164,9 +226,12 @@ try {
     Test-LocalIPConnectivity
     Push-TaggedImages -taggedImages $taggedImages
     Test-ImagesInRepository -taggedImages $taggedImages
-    Start-DockerComposeDeploy
+    Copy-FilesFromRemote
+    Start-DockerComposeDeploy -Path $originalLocation
     Clear-DockerResources
+    Set-Location -Path $originalLocation
 } finally {
+    Remove-LocalDirectory
     Remove-SSHTunnel -sshProcess $sshProcess
     Remove-TaggedImages -taggedImages $taggedImages
 }

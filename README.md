@@ -79,6 +79,12 @@ services:
 > [!NOTE]
 > A service with a build stage should still have an image name specified (in  `docker-compose.yaml`) like above, otherwise the script can not find the final image. This image name should then be prefixed with `localhost:5000/` in `remote-compose.yaml`.
 
+### Store configuration files on the remote machine
+
+Some projects require different configurations for different machines. To reduce project clutter this project assumes the files are stored on the remote machine. To reference these files when running the `remote-compose.yaml` place them in `/etc/docker-remote-deploy` on the remote machine. These will be temporarily copied to the local machine during execution.
+
+It is also possible to change the folder where these files are stored (on the remote machine) by specifying it through the `-RemotePath` argument.
+
 ## Usage
 
 ```powershell
@@ -95,13 +101,25 @@ Invoke-RemoteDeploy -TargetHost <TargetHost> [-TargetUser <TargetUser>] [-Target
 
 ### Example
 
+In it's most basic form the command looks like this:
+
 ```powershell
 Invoke-RemoteDeploy 192.168.1.100
 ```
 
+It is also possible to specify a user and registry port by using the following arguments:
+
 ```powershell
-Invoke-RemoteDeploy -TargetHost 192.168.1.100 -TargetUser root -TargetPort 5000 -Debug
+Invoke-RemoteDeploy -TargetHost 192.168.1.100 -TargetUser root -TargetPort 5000
 ```
+
+To specify a different remote config folder use the `-RemotePath` argument. It is also possible to include local files in the compose-stage:
+
+```powershell
+Invoke-RemoteDeploy Server.local -RemotePath '/var/custom-folder' -FilesToCopy '.env','README.md'
+```
+
+See all supported arguments by running `Invoke-RemoteDeploy -Help`.
 
 ## Installing Globally
 
