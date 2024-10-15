@@ -27,17 +27,37 @@ function Write-DebugMessage {
 
 function New-DockerImages {
     Write-DebugMessage "Building Docker images..."
-    docker compose build
+    try {
+        $buildOutput = docker compose build 2>&1
+        if ($buildOutput -match "The system cannot find the file specified." -or
+            $buildOutput -match "error during connect") {
+            throw "Docker is not running or improperly configured."
+        }
+        Write-DebugMessage "Docker images built successfully."
+    } catch {
+        Write-Host "Error: Failed to build Docker images. Ensure Docker is running and properly configured."
+        exit 1
+    }
 }
 
 function Get-LocalIPAddress {
     Write-DebugMessage "Getting local device IP..."
     try {
-        $TARGET_SUBNET = ($TargetHost -split '\.')[0..2] -join '.'
-        $LOCAL_IP = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.InterfaceAlias -notmatch 'Loopback' -and $_.IPAddress -like "$TARGET_SUBNET.*" }).IPAddress | Select-Object -First 1
+        $LOCAL_IP = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object {
+            $_.InterfaceAlias -notmatch 'Loopback' -and 
+            $_.InterfaceAlias -notmatch 'vEthernet' -and 
+            $_.InterfaceAlias -notmatch 'Teredo' -and 
+            $_.InterfaceAlias -notmatch 'Wi-Fi Direct' -and 
+            $_.InterfaceAlias -notmatch 'Bluetooth' -and 
+            $_.InterfaceAlias -notmatch 'Docker' -and 
+            $_.InterfaceAlias -notmatch 'VirtualBox' -and 
+            $_.IPAddress -notlike '169.254.*'
+        }).IPAddress | Select-Object -First 1
+
         if (-not $LOCAL_IP) {
-            throw "No suitable IP address found in the same subnet as the target host."
+            throw "No suitable IP address found."
         }
+
         Write-DebugMessage "Local IP: $LOCAL_IP"
         return $LOCAL_IP
     } catch {

@@ -128,7 +128,6 @@ Remove-Item -Path "C:\Windows\System32\Invoke-RemoteDeploy.ps1" -Force
 ## Notes
 
 - Ensure that Docker (Desktop) is running before executing the script.
-- In it's current state the script assumes you share a subnet with the server you're trying to SSH into, so it (probably) won't work for named URLs (e.g. server01.local).
 - You must have SSH access to the target server, on a level you can run Docker commands (probably root).
 - The script tags and pushes Docker images based on the configuration in the `docker-compose.yaml` file.
 
